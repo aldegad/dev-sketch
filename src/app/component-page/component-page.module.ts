@@ -4,17 +4,24 @@ import { SketchScreenMoreComponent } from './sketch-screen-more/sketch-screen-mo
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import { SketchElementMoreComponent } from './sketch-element-more/sketch-element-more.component';
 
 
 
 @NgModule({
-  declarations: [SketchScreenMoreComponent],
+  declarations: [
+    SketchScreenMoreComponent,
+    SketchElementMoreComponent
+  ],
   imports: [
     CommonModule,
     IonicModule,
     FormsModule,
     RouterModule
   ],
-  exports: [SketchScreenMoreComponent]
+  exports: [
+    SketchScreenMoreComponent,
+    SketchElementMoreComponent
+  ]
 })
 export class ComponentPageModule { }

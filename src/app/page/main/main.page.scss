@@ -40,13 +40,14 @@ ion-menu {
         right: -$width;
         width: $width;
         height: $width;
+        border-bottom: 1px solid white;
     }
     .handle.handle-right {
         right: -$width;
         top: $width;
         width: $width;
         height: calc(100% - #{$width});
-        border-bottom: 1px solid rgb(199, 129, 129);
+        border-bottom: 1px solid white;
         cursor: ew-resize;
         ion-icon {
             transform: rotate(90deg);
@@ -116,7 +117,31 @@ ion-menu {
             }
         }
     }
-    .text-input.active {
+    .button {
+        position: absolute;
+        background: rgb(248, 156, 81);
+        color: black;
+        border: 0;
+        height: 36px;
+        border-radius: 2px;
+        input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            text-align: center;
+            &:focus {
+                outline: none;
+            }
+        }
+    }
+    .active {
         .edit-line {
             background: rgb(148, 148, 247);
             position: absolute;
@@ -176,6 +201,26 @@ ion-menu {
             cursor: ew-resize;
             left: -4px;
             top: calc(50% - 4px);
+        }
+        .element-id {
+            background: #eeeeee;
+            color: black;
+            font-size: 11px;
+            font-weight: 300;
+            position: absolute;
+            top: -7px;
+            left: -4px;
+            width: 56px;
+            z-index: 11;
+            height: 15px;
+            input {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                padding: 2px;
+            }
         }
     }
 }

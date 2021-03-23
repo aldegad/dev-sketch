@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PopoverController } from '@ionic/angular';
+import { SketchElementMoreComponent } from 'src/app/component-page/sketch-element-more/sketch-element-more.component';
 import { SketchScreenMoreComponent } from 'src/app/component-page/sketch-screen-more/sketch-screen-more.component';
 import { interfaceClass } from '../service/file.service';
 
@@ -19,10 +20,11 @@ export class Screen_Item extends interfaceClass {
     active: [] as Element_Item[]
   }
 }
-export type Element_Item_Type = "text-input" | null;
+export type Element_Item_Type = "text-input" | "rect" | null;
 export class Element_Item extends interfaceClass {
   constructor(data?) { super(); this.setOrigin(data); }
   type: "text-input" | null = null;
+  id:string = null;
   style = {
     left: '' as string,
     top: '' as string,
@@ -65,14 +67,20 @@ export class MainPage implements OnInit {
     enter: false,
     type: null as Element_Item_Type
   }
-  drag(ev:DragEvent) {
-    this.drag_el.type = "text-input";
+  dragstart(ev:DragEvent, type) {
+    this.drag_el.type = type;
   }
   dragenter(ev:DragEvent, screen:Screen_Item) {
     this.drag_el.enter = true;
     switch(this.drag_el.type) {
       case 'text-input':
         screen.element.list.push(new Element_Item({type: "text-input", style: {
+          width: '180px', height: '36px', paddingLeft: '8px', paddingRight: '8px'
+        }}));
+        screen.element.active = [screen.element.list[screen.element.list.length -1]];
+        break;
+      case 'rect':
+        screen.element.list.push(new Element_Item({type: "rect", style: {
           width: '180px', height: '36px', paddingLeft: '8px', paddingRight: '8px'
         }}));
         screen.element.active = [screen.element.list[screen.element.list.length -1]];
@@ -87,23 +95,17 @@ export class MainPage implements OnInit {
   dragover(ev:DragEvent, screen:Screen_Item) {
     ev.preventDefault();
     const rect:DOMRect = (ev.target as Element).getBoundingClientRect();
-    const correction = {
-      width: {
-        type: screen.element.active[0].style.width.indexOf('px') > -1 ? 'px' : '%',
-        value: Number(screen.element.active[0].style.width.replace(/(px|%)/g, ''))
-      },
-      height: {
-        type: screen.element.active[0].style.height.indexOf('px') > -1 ? 'px' : '%',
-        value: Number(screen.element.active[0].style.height.replace(/(px|%)/g, ''))
-      }
-    }
-    screen.element.active[0].style.left =  ev.pageX - rect.x - (correction.width.value/2) + 'px';
-    screen.element.active[0].style.top =  ev.pageY - rect.y - (correction.height.value/2) + 'px';
+    const c_width = this.element_style_correction(screen.element.active[0].style.width);
+    const c_height = this.element_style_correction(screen.element.active[0].style.height);
+    screen.element.active[0].style.left =  ev.pageX - rect.x - (c_width.value/2) + 'px';
+    screen.element.active[0].style.top =  ev.pageY - rect.y - (c_height.value/2) + 'px';
   }
-  drop(ev:DragEvent) {
+  drop(ev:DragEvent, screen:Screen_Item) {
     ev.preventDefault();
     this.drag_el.type = null;
     this.drag_el.enter = false;
+    console.log(screen.element.active[0]);
+    screen.element.active[0].setOrigin(screen.element.active[0]);
   }
 
   screen_add() {
@@ -145,18 +147,26 @@ export class MainPage implements OnInit {
     screen.element.active = [];
     screen.element.active.push(element);
   }
-  element_move_start(element:Element_Item) {
-
+  element_style_correction(style_value) {
+    const correction = {
+      type: style_value.indexOf('px') > -1 ? 'px' : '%',
+      value: Number(style_value.replace(/(px|%)/g, ''))
+    }
+    return correction;
   }
-  element_move() {
 
+  async event_add() {
+    const popover = await this.popover.create({
+      component: SketchElementMoreComponent
+    });
+    popover.present();
   }
-  element_move_end() {
 
-  }
+  //mouse events. 나중에 element active 이벤트와 합치는 것이 관리가 더 편할 수도 있음. 일단 다른게 더 중요하므로 추후 고려.
 
   mouse_object = {
     item: null as Screen_Item | Element_Item,
+    item_instance: null as string,
     type: null as any,
     start: {
       x: 0,
@@ -170,6 +180,8 @@ export class MainPage implements OnInit {
   }
   mousestart(ev:MouseEvent, item:Screen_Item | Element_Item, type: any) {
     this.mouse_object.item = item;
+    if(this.mouse_object.item instanceof Screen_Item) this.mouse_object.item_instance = 'Screen_Item';
+    else if(this.mouse_object.item instanceof Element_Item) this.mouse_object.item_instance = 'Element_Item';
     this.mouse_object.type = type;
     this.mouse_object.start.x = ev.pageX;
     this.mouse_object.start.y = ev.pageY;
@@ -194,7 +206,31 @@ export class MainPage implements OnInit {
             break;
         }
       } else if(this.mouse_object.item instanceof Element_Item) {
-        this.mouse_object.item.style.top
+        console.log(this.mouse_object.item.origin.style);
+        const c_top = this.element_style_correction(this.mouse_object.item.origin.style.top);
+        const c_left = this.element_style_correction(this.mouse_object.item.origin.style.left);
+        const c_height = this.element_style_correction(this.mouse_object.item.origin.style.height);
+        const c_width = this.element_style_correction(this.mouse_object.item.origin.style.width);
+        switch(this.mouse_object.type) {
+          case 'move':
+            this.mouse_object.item.style.top = c_top.value + move.y + 'px';
+            this.mouse_object.item.style.left = c_left.value + move.x + 'px';
+            break;
+          case 'scale-top':
+            this.mouse_object.item.style.top = c_top.value + move.y + 'px';
+            this.mouse_object.item.style.height = c_height.value - move.y + 'px';
+            break;
+          case 'scale-bottom':
+            this.mouse_object.item.style.height = c_height.value + move.y + 'px';
+            break;
+          case 'scale-right':
+            this.mouse_object.item.style.width = c_width.value + move.x + 'px';
+            break;
+          case 'scale-left':
+            this.mouse_object.item.style.left = c_left.value + move.x + 'px';
+            this.mouse_object.item.style.width = c_width.value - move.x + 'px';
+            break;
+        }
       }
     }
   }
@@ -202,6 +238,7 @@ export class MainPage implements OnInit {
     if(this.mouse_object.item) {
       this.mouse_object.item.setOrigin(this.mouse_object.item);
       this.mouse_object.item = null;
+      this.mouse_object.item_instance = null;
     }
   }
 }

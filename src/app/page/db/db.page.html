@@ -9,10 +9,26 @@
     </ion-buttons>
   </ion-toolbar>
   <ion-toolbar>
-
+    <ion-buttons slot="end">
+      <ion-button fill="solid" (click)="set_db()">save DB</ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
-  
+<ion-content scrollX="true">
+  <table class="db-table">
+    <tbody>
+      <tr *ngFor="let row of DB_data; let i = index; let f = first;">
+        <td class="index" *ngIf="f"></td>
+        <td class="index" *ngIf="i === 1">id</td>
+        <td class="index" *ngIf="!f && i !== 1">{{ i }}</td>
+        <ng-container *ngIf="f">
+          <td *ngFor="let col of row">{{ col.value }}</td>
+        </ng-container>
+        <ng-container *ngIf="!f">
+          <td *ngFor="let col of row"><input [(ngModel)]="col.value"></td>
+        </ng-container>
+      </tr>
+    </tbody>
+  </table>
 </ion-content>

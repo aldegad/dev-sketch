@@ -333,7 +333,7 @@ export class interfaceClass {
           this.origin[key] = this[key];
         }
         else if(typeof data[key] === 'object') {
-          if(this[key].constructor.name === 'Array') {
+          if(this[key]?.constructor.name === 'Array') {
             this[key] = data[key] === null ? this[key] : JSON.parse(JSON.stringify(data[key]));
             this.origin[key] = data[key] === null ? this[key] : JSON.parse(JSON.stringify(data[key]));
           } else {
