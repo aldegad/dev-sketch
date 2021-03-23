@@ -1,0 +1,128 @@
+
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Dev Sketch</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/db">
+        <ion-icon slot="start" name="repeat-outline"></ion-icon>
+        DB
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="solid" draggable="true" (dragstart)="drag($event)">
+        <ion-icon slot="start" name="create-outline"></ion-icon>
+        text input
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <ion-split-pane contentId="sketch-content">
+    <ion-content id="sketch-content"
+      (mousedown)="mousedown($event)"
+      (mousemove)="mousemove($event)"
+      (mouseleave)="mouseend($event)"
+      (mouseup)="mouseend($event)">
+      <div class="screen-layout">
+        <div class="screen-group" *ngFor="let screen of screen.active; let i = index;">
+          <div class="screen-title">{{ screen.name.text }}</div>
+          <div class="screen"
+          [style.width]="screen.style.width + 'px'"
+          [style.height]="screen.style.height + 'px'">
+            <div class="handle handle-remove" (click)="screen_remove(i)"><ion-icon name="close-outline"></ion-icon></div>
+            <div class="handle handle-right" (mousedown)="mousestart($event, screen, 'width')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+            <div class="handle handle-bottom" (mousedown)="mousestart($event, screen, 'height')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+            <div class="handle handle-right-bottom" (mousedown)="mousestart($event, screen, 'both')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+            <div
+            (dragenter)="dragenter($event, screen)"
+            (dragover)="dragover($event, screen)"
+            (dragleave)="dragleave($event, screen)"
+            (drop)="drop($event)"
+            class="elements">
+              <ng-container *ngFor="let element of screen.element.list" [ngSwitch]="element.type">
+                <div *ngSwitchCase="'text-input'" class="text-input"
+                (mousedown)="$event.stopPropagation()"
+                (click)="element_active($event, screen, element)"
+                [class.active]="screen.element.active.includes(element) && !drag_el.enter"
+                [style.pointer-events]="drag_el.enter ? 'none' : null"
+                [style.top]="element.style.top" [style.left]="element.style.left" [style.bottom]="element.style.bottom" [style.right]="element.style.right"
+                [style.height]="element.style.height" [style.width]="element.style.width">
+                  <input [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom">
+                  <div class="edit-line edit-top-line" (mousedown)="mousestart($event, element, 'move')"></div>
+                  <div class="edit-line edit-bottom-line" (mousedown)="mousestart($event, element, 'move')"></div>
+                  <div class="edit-line edit-right-line" (mousedown)="mousestart($event, element, 'move')"></div>
+                  <div class="edit-line edit-left-line" (mousedown)="mousestart($event, element, 'move')"></div>
+                  <div class="edit-dot edit-dot-top"></div>
+                  <div class="edit-dot edit-dot-bottom"></div>
+                  <div class="edit-dot edit-dot-right"></div>
+                  <div class="edit-dot edit-dot-left"></div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-content>
+    <ion-menu menuId="sketch-menu" contentId="sketch-content">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Screens</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="screen_add()">
+              <ion-icon slot="start" name="add-outline"></ion-icon>
+              add
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ng-container *ngFor="let screen of screen.list; let i = index;">
+            <ion-item *ngIf="!screen.name.edit" class="screen-list-item" button (click)="screen_active(screen)">
+              <ion-label>{{ screen.name.text }}</ion-label>
+              <ion-button slot="end" fill="clear" color="dark" (click)="screen_more($event, screen, i)">
+                <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+              </ion-button>
+            </ion-item>
+            <ion-item *ngIf="screen.name.edit" class="screen-list-item">
+              <ion-label>
+                <input placeholder="untitled" [(ngModel)]="screen.name.edit_text">
+              </ion-label>
+              <div slot="end">
+                <ion-button fill="clear" color="dark" (click)="screen_edit_cancel(screen)">
+                  cancel
+                </ion-button>
+                <ion-button fill="clear" color="dark" (click)="screen_edit_save(screen)">
+                  save
+                </ion-button>
+              </div>
+            </ion-item>
+          </ng-container>
+        </ion-list>
+      </ion-content>
+    </ion-menu>
+    <ion-menu menuId="screen-detail-menu" contentId="sketch-content" side="end" class="screen-detail-menu">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ element_menu.type }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button *ngIf="element_menu.type === 'Details'" (click)="element_menu.type = 'Description'">
+              <ion-icon slot="start" name="repeat-outline"></ion-icon>
+              Description
+            </ion-button>
+            <ion-button *ngIf="element_menu.type === 'Description'" (click)="element_menu.type = 'Details'">
+              <ion-icon slot="start" name="repeat-outline"></ion-icon>
+              Details
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content *ngIf="element_menu.type === 'Details'"></ion-content>
+      <ion-content *ngIf="element_menu.type === 'Description'">
+        <textarea [(ngModel)]="element_menu.description"></textarea>
+      </ion-content>
+    </ion-menu>
+  </ion-split-pane>
+</ion-content>
