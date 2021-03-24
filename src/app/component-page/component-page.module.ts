@@ -5,11 +5,13 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { SketchElementMoreComponent } from './sketch-element-more/sketch-element-more.component';
+import { DbMoreComponent } from './db-more/db-more.component';
 
 
 
 @NgModule({
   declarations: [
+    DbMoreComponent,
     SketchScreenMoreComponent,
     SketchElementMoreComponent
   ],
@@ -19,9 +21,6 @@ import { SketchElementMoreComponent } from './sketch-element-more/sketch-element
     FormsModule,
     RouterModule
   ],
-  exports: [
-    SketchScreenMoreComponent,
-    SketchElementMoreComponent
-  ]
+  exports: []
 })
 export class ComponentPageModule { }

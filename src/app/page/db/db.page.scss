@@ -1,3 +1,17 @@
+ion-menu {
+    --side-max-width: 200px;
+}
+.db-list-item {
+    --inner-padding-end: 4px;
+    [slot="end"] {
+        margin-left: 0;
+    }
+    input {
+        width: 100%;
+    }
+}
+
+
 .db-table {
     border-collapse: collapse;
     table-layout: fixed;
@@ -31,6 +45,11 @@
     tr:first-child {
         td {
             background: rgb(241, 241, 241);
+        }
+    }
+    tr:nth-child(2) {
+        td {
+            border-bottom: 1px solid #b3b3b3;
         }
     }
     td:first-child {

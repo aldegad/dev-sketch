@@ -1,11 +1,16 @@
 import { Component, OnInit } from '@angular/core';
-import { PopoverController } from '@ionic/angular';
+import { PopoverController, ViewDidLeave, ViewWillEnter } from '@ionic/angular';
 import { SketchElementMoreComponent } from 'src/app/component-page/sketch-element-more/sketch-element-more.component';
 import { SketchScreenMoreComponent } from 'src/app/component-page/sketch-screen-more/sketch-screen-more.component';
+import { DB_Data, DB_Item } from 'src/app/interface';
+import { ConnectService } from '../service/connect.service';
 import { interfaceClass } from '../service/file.service';
 
 export class Screen_Item extends interfaceClass {
-  constructor(data?) { super(); this.setOrigin(data); }
+  constructor(data?) { 
+    super(); this.setOrigin(data);
+    if(data?.element?.list) this.element.list = data.element.list.map(data => new Element_Item(data));
+  }
   name = {
     text: 'untitled',
     edit: false,
@@ -22,14 +27,18 @@ export class Screen_Item extends interfaceClass {
 }
 export type Element_Item_Type = "text-input" | "rect" | null;
 export class Element_Item extends interfaceClass {
-  constructor(data?) { super(); this.setOrigin(data); }
+  constructor(data?) { 
+    super(); this.setOrigin(data);
+    if(data?.events?.click) this.events.click = data.events.click.map(data => new Event_Item(data));
+  }
   type: "text-input" | null = null;
   id:string = null;
+  value:string = null;
   style = {
     left: '' as string,
     top: '' as string,
-    right: null as string,
-    bottom: null as string,
+    right: '' as string,
+    bottom: '' as string,
     width: '' as string,
     height: '' as string,
     paddingLeft: '' as string,
@@ -37,17 +46,44 @@ export class Element_Item extends interfaceClass {
     paddingTop: '' as string,
     paddingBottom: '' as string
   }
+  events = {
+    click: [] as Event_Item[]
+  }
+}
+export class Event_Item extends interfaceClass {
+  constructor(data?) { 
+    super(); 
+    switch(data.type) {
+      case 'set-data':
+        this.event = new Set_Data_Event();
+        break;
+    }
+    this.setOrigin(data);
+  }
+  type: "set-data" | "get-data" = null;
+  event: Set_Data_Event = null;
+}
+export class Set_Data_Event extends interfaceClass {
+  constructor(data?) { super(); this.setOrigin(data); }
+  data = [new Set_Data_Event_Row()]
+}
+export class Set_Data_Event_Row extends interfaceClass {
+  constructor(data?) { super(); this.setOrigin(data); }
+  db:string = '';
+  id:string = '';
 }
 @Component({
   selector: 'app-main',
   templateUrl: './main.page.html',
-  styleUrls: ['./main.page.scss'],
+  styleUrls: ['./main.page.scss']
 })
-export class MainPage implements OnInit {
+export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
+
+  page_enable:boolean = false;
 
   screen = {
     list: [new Screen_Item()],
-    active: [] as Screen_Item[]
+    active: null as Screen_Item
   }
 
   element_menu = {
@@ -56,11 +92,20 @@ export class MainPage implements OnInit {
   }
 
   constructor(
-    private popover: PopoverController
+    private popover: PopoverController,
+    private connect: ConnectService
   ) { }
 
   ngOnInit() {
-    this.screen.active.push(this.screen.list[0]);
+    this.screen.active = this.screen.list[0];
+  }
+  async ionViewWillEnter() {
+    this.page_enable = true;
+    this.screen.list = await this.get_sketch_list();
+    this.screen.active = this.screen.list[0];
+  }
+  ionViewDidLeave() {
+    this.page_enable = false;
   }
 
   drag_el = {
@@ -104,15 +149,16 @@ export class MainPage implements OnInit {
     ev.preventDefault();
     this.drag_el.type = null;
     this.drag_el.enter = false;
-    console.log(screen.element.active[0]);
+    this.insert_sketch_data(screen.name.text, screen);
     screen.element.active[0].setOrigin(screen.element.active[0]);
   }
 
   screen_add() {
     this.screen.list.push(new Screen_Item())
   }
-  screen_remove(screen_index:number) {
-    this.screen.list.splice(screen_index, 1);
+  screen_remove(screen:Screen_Item) {
+    const index = this.screen.list.indexOf(screen);
+    this.screen.list.splice(index, 1);
   }
   async screen_more(ev:MouseEvent, screen:Screen_Item, i) {
     ev.stopPropagation();
@@ -140,11 +186,12 @@ export class MainPage implements OnInit {
     screen.name.edit = false;
   }
   screen_active(screen:Screen_Item) {
-    this.screen.active = [screen];
+    this.screen.active = screen;
   }
   
   element_active(ev:MouseEvent, screen:Screen_Item, element:Element_Item) {
     screen.element.active = [];
+    console.log(element);
     screen.element.active.push(element);
   }
   element_style_correction(style_value) {
@@ -155,11 +202,95 @@ export class MainPage implements OnInit {
     return correction;
   }
 
-  async event_add() {
+  async event_add(ev:MouseEvent, type) {
     const popover = await this.popover.create({
-      component: SketchElementMoreComponent
+      component: SketchElementMoreComponent,
+      event: ev
     });
     popover.present();
+
+    const { data } = await popover.onWillDismiss();
+    switch(data) {
+      case 'set-data':
+        const last_active_index = this.screen.active.element.active.length - 1;
+        this.screen.active.element.active[last_active_index].events[type].push(new Event_Item({ type: "set-data" }));
+        break;
+      case 'update-data':
+        break;
+      case 'get-data':
+
+        break;
+    }
+  }
+  event_provoke(type:string, screen:Screen_Item, element:Element_Item) {
+    switch(type) {
+      case 'click':
+        element.events.click.forEach(async(event) => {
+          switch(event.type) {
+            case 'set-data':
+              const db_list = await this.get_DB_Data();
+              const insert_db_list = [] as {
+                db_name: string,
+                datas: [{ id:string, value:any }]
+              }[];
+              event.event.data.forEach(async(data_row) => {
+                if(data_row.db && data_row.id) {
+                  const insert_db_item = insert_db_list.find(x => x.db_name === data_row.db);
+                  const id = data_row.id;
+                  const value = screen.element.list.find(x => x.id === id)?.value;
+                  if(insert_db_item) {
+                    insert_db_item.datas.push({id, value});
+                  } else {
+                    insert_db_list.push({
+                      db_name: data_row.db,
+                      datas: [{ id, value }]
+                    });
+                  }
+                }
+              });
+              console.log(db_list);
+              console.log(insert_db_list);
+              insert_db_list.forEach(insert_db_item => {
+                const db_item:DB_Item = db_list.find(x => x.name.text === insert_db_item.db_name);
+                console.log(db_item);
+                if(db_item) {
+                  const ids = db_item.data.table[0];
+                  //db_item.data.table.push();
+                }
+              });
+              let DB_data:DB_Data;
+              /* const res = await this.connect.run('one', 'Insert_Db_Data', {
+                db_nm: this.DB_list
+                db_data:
+              }); */
+              break;
+          }
+        });
+        break;
+    }
+  }
+  event_set_data_id(screen:Screen_Item, event_data:Set_Data_Event_Row[], data:Set_Data_Event_Row, index:number, last:boolean) {
+    if(last && data.db && data.id) event_data.push(new Set_Data_Event_Row());
+    if(!last && !data.db && !data.id) event_data.splice(index, 1);
+    this.insert_sketch_data(screen.name.text, screen);
+  }
+  async get_DB_Data() {
+    const res = await this.connect.run('one', 'Get_Db_List');
+    switch(res.code) {
+      case 0:
+        return res.data.json_data.map(data => {
+          return {
+            name: {
+              text: data.db_nm,
+              edit: false,
+              edit_text: ''
+            },
+            data: JSON.parse(data.db_data)
+          }
+        }) as DB_Item[];
+      default:
+        return [];
+    }
   }
 
   //mouse events. 나중에 element active 이벤트와 합치는 것이 관리가 더 편할 수도 있음. 일단 다른게 더 중요하므로 추후 고려.
@@ -234,11 +365,41 @@ export class MainPage implements OnInit {
       }
     }
   }
-  mouseend(ev:MouseEvent) {
+  mouseend(ev:MouseEvent, screen:Screen_Item) {
     if(this.mouse_object.item) {
       this.mouse_object.item.setOrigin(this.mouse_object.item);
+      this.insert_sketch_data(screen.name.text, screen);
       this.mouse_object.item = null;
       this.mouse_object.item_instance = null;
+    }
+  }
+
+  async get_sketch_list() {
+    const res = await this.connect.run('one', 'Get_Sketch_List');
+    switch(res.code) {
+      case 0:
+        const screen_list:Screen_Item[] = res.data.json_data.map(data => {
+          const screen_item = new Screen_Item(JSON.parse(data.sketch_data));
+          screen_item.element.active = [];
+          return screen_item;
+        });
+        return screen_list;
+      default:
+        this.connect.error('아쒸 왜 안되냐고', res);
+        return [];
+    }
+  }
+  async insert_sketch_data(sketch_nm:string, sketch_data:Screen_Item) {
+    const res = await this.connect.run('one', 'Insert_Sketch_Data', {
+      sketch_nm,
+      sketch_data
+    });
+    switch(res.code) {
+      case 0:
+        break;
+      default:
+        this.connect.error('아쒸 왜 안되냐고', res);
+        break;
     }
   }
 }

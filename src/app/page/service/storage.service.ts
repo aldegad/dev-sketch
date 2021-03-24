@@ -17,7 +17,7 @@ export class StorageService {
     this.user.get();
   }
 
-  private name = 'ssp-web@';
+  private name = 'dev-sketch@';
 
   user = {
     auto_login: true,

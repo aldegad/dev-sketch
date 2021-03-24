@@ -9,26 +9,68 @@
     </ion-buttons>
   </ion-toolbar>
   <ion-toolbar>
-    <ion-buttons slot="end">
+    <!-- <ion-buttons slot="end">
+      <ion-button fill="solid" (click)="get_db()">reload DB</ion-button>
       <ion-button fill="solid" (click)="set_db()">save DB</ion-button>
-    </ion-buttons>
+    </ion-buttons> -->
   </ion-toolbar>
 </ion-header>
-
-<ion-content scrollX="true">
-  <table class="db-table">
-    <tbody>
-      <tr *ngFor="let row of DB_data; let i = index; let f = first;">
-        <td class="index" *ngIf="f"></td>
-        <td class="index" *ngIf="i === 1">id</td>
-        <td class="index" *ngIf="!f && i !== 1">{{ i }}</td>
-        <ng-container *ngIf="f">
-          <td *ngFor="let col of row">{{ col.value }}</td>
-        </ng-container>
-        <ng-container *ngIf="!f">
-          <td *ngFor="let col of row"><input [(ngModel)]="col.value"></td>
-        </ng-container>
-      </tr>
-    </tbody>
-  </table>
+<ion-content>
+  <ion-split-pane contentId="db-content" *ngIf="page_enable">
+    <ion-content id="db-content" scrollX="true">
+      <table class="db-table">
+        <tbody>
+          <ng-container *ngFor="let row of DB_list.active?.data.table; let ri = index; let f = first; let rc = count;">
+            <tr *ngIf="f">
+              <td></td>
+              <td *ngFor="let col of get_DB_col_labels(row.length)">{{ col }}</td>
+            </tr>
+            <tr>
+              <td class="index" *ngIf="f">id</td>
+              <td class="index" *ngIf="!f">{{ ri }}</td>
+              <td *ngFor="let col of row; let ci = index; let cc = count;"><input [(ngModel)]="col.value" (keyup)="edit_db(DB_list.active.data)"></td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </ion-content>
+    <ion-menu menuId="db-menu" contentId="db-content">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>DBs</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="DB_add()">
+              <ion-icon slot="start" name="add-outline"></ion-icon>
+              add
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ng-container *ngFor="let DB_item of DB_list.array; let i = index;">
+            <ion-item *ngIf="!DB_item.name.edit" class="db-list-item" button (click)="db_active(DB_item)">
+              <ion-label>{{ DB_item.name.text }}</ion-label>
+              <ion-button slot="end" fill="clear" color="dark" (click)="db_more($event, DB_item, i)">
+                <ion-icon slot="icon-only" name="ellipsis-vertical"></ion-icon>
+              </ion-button>
+            </ion-item>
+            <ion-item *ngIf="DB_item.name.edit" class="db-list-item">
+              <ion-label>
+                <input placeholder="untitled" [(ngModel)]="DB_item.name.edit_text">
+              </ion-label>
+              <div slot="end">
+                <ion-button fill="clear" color="dark" (click)="db_edit_cancel(DB_item)">
+                  cancel
+                </ion-button>
+                <ion-button fill="clear" color="dark" (click)="db_edit_save(DB_item)">
+                  save
+                </ion-button>
+              </div>
+            </ion-item>
+          </ng-container>
+        </ion-list>
+      </ion-content>
+    </ion-menu>
+  </ion-split-pane>
 </ion-content>

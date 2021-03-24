@@ -18,44 +18,46 @@
         rect
       </ion-button>
       <ion-button fill="solid" draggable="true" (dragstart)="dragstart($event, 'data')">
-        data(invisible)
+        rect(invisible)
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 <ion-content>
-  <ion-split-pane contentId="sketch-content">
+  <ion-split-pane contentId="sketch-content" *ngIf="page_enable">
     <ion-content id="sketch-content"
       (mousedown)="mousedown($event)"
       (mousemove)="mousemove($event)"
-      (mouseleave)="mouseend($event)"
-      (mouseup)="mouseend($event)">
+      (mouseleave)="mouseend($event, screen.active)"
+      (mouseup)="mouseend($event, screen.active)">
       <div class="screen-layout">
-        <div class="screen-group" *ngFor="let screen of screen.active; let i = index;">
-          <div class="screen-title">{{ screen.name.text }} : {{ screen.style.width }} * {{ screen.style.height }}</div>
+        <div class="screen-group">
+          <div class="screen-title">{{ screen.active.name.text }} : {{ screen.active.style.width }} * {{ screen.active.style.height }}</div>
           <div class="screen"
-          [style.width]="screen.style.width + 'px'"
-          [style.height]="screen.style.height + 'px'">
-            <div class="handle handle-remove" (click)="screen_remove(i)"><ion-icon name="close-outline"></ion-icon></div>
-            <div class="handle handle-right" (mousedown)="mousestart($event, screen, 'width')"><ion-icon name="reorder-two-outline"></ion-icon></div>
-            <div class="handle handle-bottom" (mousedown)="mousestart($event, screen, 'height')"><ion-icon name="reorder-two-outline"></ion-icon></div>
-            <div class="handle handle-right-bottom" (mousedown)="mousestart($event, screen, 'both')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+          [style.width]="screen.active.style.width + 'px'"
+          [style.height]="screen.active.style.height + 'px'">
+            <div class="handle handle-remove" (click)="screen_remove(screen.active)"><ion-icon name="close-outline"></ion-icon></div>
+            <div class="handle handle-right" (mousedown)="mousestart($event, screen.active, 'width')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+            <div class="handle handle-bottom" (mousedown)="mousestart($event, screen.active, 'height')"><ion-icon name="reorder-two-outline"></ion-icon></div>
+            <div class="handle handle-right-bottom" (mousedown)="mousestart($event, screen.active, 'both')"><ion-icon name="reorder-two-outline"></ion-icon></div>
             <div
-            (dragenter)="dragenter($event, screen)"
-            (dragover)="dragover($event, screen)"
-            (dragleave)="dragleave($event, screen)"
-            (drop)="drop($event, screen)"
+            (dragenter)="dragenter($event, screen.active)"
+            (dragover)="dragover($event, screen.active)"
+            (dragleave)="dragleave($event, screen.active)"
+            (drop)="drop($event, screen.active)"
             class="elements">
-              <ng-container *ngFor="let element of screen.element.list" [ngSwitch]="element.type">
+              <ng-container *ngFor="let element of screen.active.element.list" [ngSwitch]="element.type">
                 <div *ngSwitchCase="'text-input'" class="text-input"
                 (mousedown)="$event.stopPropagation()"
-                (click)="element_active($event, screen, element)"
-                [class.active]="screen.element.active.includes(element) && !drag_el.enter"
+                (click)="element_active($event, screen.active, element)"
+                [class.active]="screen.active.element.active.includes(element) && !drag_el.enter"
                 [style.pointer-events]="drag_el.enter ? 'none' : null"
                 [style.top]="element.style.top" [style.left]="element.style.left" [style.bottom]="element.style.bottom" [style.right]="element.style.right"
                 [style.height]="element.style.height" [style.width]="element.style.width">
-                  <input [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom">
-                  <ng-container *ngIf="screen.element.active.includes(element) && !drag_el.enter">
+                  <input
+                  [(ngModel)]="element.value" (keyup)="insert_sketch_data(screen.active.name.text, screen.active)"
+                  [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom">
+                  <ng-container *ngIf="screen.active.element.active.includes(element) && !drag_el.enter">
                     <div class="edit-line edit-top-line" (mousedown)="mousestart($event, element, 'move')"></div>
                     <div class="edit-line edit-bottom-line" (mousedown)="mousestart($event, element, 'move')"></div>
                     <div class="edit-line edit-right-line" (mousedown)="mousestart($event, element, 'move')"></div>
@@ -71,12 +73,15 @@
                 </div>
                 <button *ngSwitchCase="'rect'" class="button"
                 (mousedown)="$event.stopPropagation()"
-                (click)="element_active($event, screen, element)"
-                [class.active]="screen.element.active.includes(element) && !drag_el.enter"
+                (click)="element_active($event, screen.active, element);"
+                [class.active]="screen.active.element.active.includes(element) && !drag_el.enter"
                 [style.pointer-events]="drag_el.enter ? 'none' : null"
                 [style.top]="element.style.top" [style.left]="element.style.left" [style.bottom]="element.style.bottom" [style.right]="element.style.right"
                 [style.height]="element.style.height" [style.width]="element.style.width">
-                  <input [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom">
+                  <input
+                  [(ngModel)]="element.value" (keyup)="insert_sketch_data(screen.active.name.text, screen.active)"
+                  [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom"
+                  (click)="event_provoke('click', screen.active, element)">
                   <div class="edit-line edit-top-line" (mousedown)="mousestart($event, element, 'move')"></div>
                   <div class="edit-line edit-bottom-line" (mousedown)="mousestart($event, element, 'move')"></div>
                   <div class="edit-line edit-right-line" (mousedown)="mousestart($event, element, 'move')"></div>
@@ -147,19 +152,44 @@
         </ion-toolbar>
       </ion-header>
       <ion-content *ngIf="element_menu.type === 'Details'">
-        <ng-container *ngIf="screen.active[0]?.element.active.length">
+        <ng-container *ngIf="screen.active?.element.active.length">
           <ion-list>
             <ion-list-header>Element Styles</ion-list-header>
             <ion-list-header>Element Events</ion-list-header>
             <ion-item>
               <ion-label>click</ion-label>
-              <ion-button slot="end" fill="clear" (click)="event_add()">
+              <ion-button slot="end" fill="clear" (click)="event_add($event, 'click')">
                 <ion-icon name="add-outline"></ion-icon>
               </ion-button>
             </ion-item>
+            <ng-container *ngFor="let event of this.screen.active.element.active[this.screen.active.element.active.length-1].events['click']">
+              <ion-item class="event-item">
+                <ion-label>
+                  <p>{{ event.type }}</p>
+                  <ion-grid *ngFor="let data of event.event.data; let i = index; let l = last;">
+                    <ion-row>
+                      <ion-col>
+                        DB:
+                      </ion-col>
+                      <ion-col>
+                        <input placeholder="DB name" [(ngModel)]="data.db" (keyup)="event_set_data_id(this.screen.active, event.event.data, data, i, l)">
+                      </ion-col>
+                    </ion-row>
+                    <ion-row>
+                      <ion-col>
+                        id:
+                      </ion-col>
+                      <ion-col>
+                        <input placeholder="drag or write element id" [(ngModel)]="data.id" (keyup)="event_set_data_id(this.screen.active, event.event.data, data, i, l)">
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </ion-label>
+              </ion-item>
+            </ng-container>
           </ion-list>
         </ng-container>
-        <ng-container *ngIf="!screen.active[0]?.element.active.length">
+        <ng-container *ngIf="!screen.active?.element.active.length">
           <ion-list>
             <ion-list-header>Screen Styles</ion-list-header>
             <ion-list-header>Screen Events</ion-list-header>

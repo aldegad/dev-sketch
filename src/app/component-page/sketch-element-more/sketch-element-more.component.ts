@@ -15,9 +15,9 @@ export class SketchElementMoreComponent implements OnInit {
   ngOnInit() {}
 
   set_data() {
-
+    this.popover.dismiss("set-data");
   }
   get_data() {
-    
+    this.popover.dismiss("get-data");
   }
 }

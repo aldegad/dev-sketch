@@ -12,7 +12,7 @@ import { FileService } from './file.service';
 
 export type Connect_Result = {code:number, data:any, message:string, url:string};
 export class Connect_Server {
-  one = "http://sed.gsil.shop/samsung/UserService.asmx/";
+  one = "http://13.125.150.3/test/api/";
 }
 
 @Injectable({
