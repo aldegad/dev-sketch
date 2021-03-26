@@ -75,6 +75,7 @@ export class DbPage implements OnInit {
 
   DB_add() {
     this.DB_list.array.push(new DB_Item());
+    
   }
   db_active(DB_item:DB_Item) {
     this.DB_list.active = DB_item;

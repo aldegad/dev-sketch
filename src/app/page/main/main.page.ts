@@ -153,8 +153,10 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
     screen.element.active[0].setOrigin(screen.element.active[0]);
   }
 
-  screen_add() {
-    this.screen.list.push(new Screen_Item())
+  async screen_add() {
+    this.screen.list.push(new Screen_Item());
+    const last_screen = this.screen.list[this.screen.list.length-1];
+    this.insert_sketch_data(last_screen.name.text, last_screen);
   }
   screen_remove(screen:Screen_Item) {
     const index = this.screen.list.indexOf(screen);
