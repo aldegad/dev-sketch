@@ -57,7 +57,7 @@
             </ion-item>
             <ion-item *ngIf="DB_item.name.edit" class="db-list-item">
               <ion-label>
-                <input placeholder="untitled" [(ngModel)]="DB_item.name.edit_text">
+                <input placeholder="untitled" [(ngModel)]="DB_item.name.edit_text" (keyup.enter)="db_edit_save(DB_item)">
               </ion-label>
               <div slot="end">
                 <ion-button fill="clear" color="dark" (click)="db_edit_cancel(DB_item)">

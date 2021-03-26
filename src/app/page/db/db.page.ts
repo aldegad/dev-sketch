@@ -59,14 +59,15 @@ export class DbPage implements OnInit {
 
   get_DB_col_labels(count:number) {
     var arr = [];
-    const start = 'A'.charCodeAt(0);
+    const char_arr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     for (var i = 0; i < count; ++i){
-      arr.push(String.fromCharCode(start + i));
-      const times = Math.floor((arr.length-1)/26);
-      let step = 0;
-      while(step < times) {
-        arr[i] = arr[times-1] + arr[(arr.length-1)%26];
-        step++;
+      let num = i;
+      let calc:boolean = true;
+      arr[i] = '';
+      while(calc) {
+        arr[i] = char_arr[(num)%26] + arr[i];
+        num = Math.floor((num)/26);
+        if(num === 0) calc = false;
       }
     }
     return arr;
@@ -92,6 +93,9 @@ export class DbPage implements OnInit {
         DB_item.name.edit = true;
         break;
       case 'remove':
+        this.connect.run('one', 'Delete_Db_Data', {
+          db_nm: DB_item.name.text
+        })
         this.DB_list.array.splice(i, 1);
         break;
     }
@@ -100,12 +104,9 @@ export class DbPage implements OnInit {
     DB_item.name.edit = false;
   }
   async db_edit_save(DB_item:DB_Item) {
-    const origin_name = DB_item.name.text;
-    DB_item.name.text = DB_item.name.edit_text;
-    DB_item.name.edit = false;
     const res = await this.connect.run('one', 'Change_Db_Name', {
-      db_nm: origin_name,
-      new_db_nm: DB_item.name.text
+      db_nm: DB_item.name.text,
+      new_db_nm: DB_item.name.edit_text
     });
     switch(res.code) {
       case 0:
@@ -114,6 +115,8 @@ export class DbPage implements OnInit {
         this.connect.error('DB 이름 변경 안됨', res);
         break;
     }
+    DB_item.name.text = DB_item.name.edit_text;
+    DB_item.name.edit = false;
   }
 
   edit_db(db_data:DB_Data) {
@@ -133,6 +136,7 @@ export class DbPage implements OnInit {
         if(col.value && ci > last_value_col_index) last_value_col_index = ci;
       });
     });
+
     const additional_row_count = 10 - (db_data.table.length - last_value_row_index);
     let step = 0;
     if(additional_row_count > 0) {
@@ -173,7 +177,8 @@ export class DbPage implements OnInit {
   async set_db() {
     if(this.set_time_limit) return;
     this.set_time_limit = true;
-    await new Promise(res => setTimeout(res, 1000));
+
+    await new Promise(res => setTimeout(res, 100));
     const res = await this.connect.run('one', 'Insert_Db_Data', {
       db_nm: this.DB_list.active.name.text,
       db_data: this.DB_list.active.data

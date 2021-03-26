@@ -120,7 +120,7 @@
             </ion-item>
             <ion-item *ngIf="screen.name.edit" class="screen-list-item">
               <ion-label>
-                <input placeholder="untitled" [(ngModel)]="screen.name.edit_text">
+                <input placeholder="untitled" [(ngModel)]="screen.name.edit_text" (keyup.enter)="screen_edit_save(screen)">
               </ion-label>
               <div slot="end">
                 <ion-button fill="clear" color="dark" (click)="screen_edit_cancel(screen)">

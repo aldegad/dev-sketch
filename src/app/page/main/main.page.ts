@@ -181,7 +181,18 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
   screen_edit_cancel(screen:Screen_Item) {
     screen.name.edit = false;
   }
-  screen_edit_save(screen:Screen_Item) {
+  async screen_edit_save(screen:Screen_Item) {
+    const res = await this.connect.run('one', 'Change_Sketch_Name', {
+      sketch_nm: screen.name.text,
+      new_sketch_nm: screen.name.edit_text
+    });
+    switch(res.code) {
+      case 0:
+        break;
+      default:
+        this.connect.error('스케치 이름 변경 안됨', res);
+        break;
+    }
     screen.name.text = screen.name.edit_text;
     screen.name.edit = false;
   }
@@ -250,20 +261,42 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
               });
               console.log(db_list);
               console.log(insert_db_list);
-              insert_db_list.forEach(insert_db_item => {
+              insert_db_list.forEach(async(insert_db_item) => {
                 const db_item:DB_Item = db_list.find(x => x.name.text === insert_db_item.db_name);
                 console.log(db_item);
                 if(db_item) {
+                  let last_ri = 0;
+                  let last_ci = 0;
+                  //get last row & col index
+                  db_item.data.table.forEach((row, ri) => {
+                    row.forEach((col, ci) => {
+                      if(col.value) last_ri = ri;
+                      if(col.value && ci > last_ci) last_ci = ci;
+                    });
+                  });
+
                   const ids = db_item.data.table[0];
-                  //db_item.data.table.push();
+                  insert_db_item.datas.forEach(insert_data => {
+                    const id_index = ids.findIndex(id => id.value === insert_data.id);
+                    if(id_index > -1) {
+                      if(!db_item.data.table[last_ri+1]) db_item.data.table[last_ri+1] = db_item.data.table[last_ri].map(() => {return {value: ''}});
+                      db_item.data.table[last_ri+1][id_index] = {value: insert_data.value};
+                    }
+                  });
+                  const res = await this.connect.run('one', 'Insert_Db_Data', {
+                    db_nm: db_item.name.text,
+                    db_data: db_item.data
+                  });
+                  switch(res.code) {
+                    case 0:
+                      break;
+                    default:
+                      this.connect.error('아 왜 안됨', res);
+                      break;
+                  }
                 }
+                //테이블이 없으면 생성하자.
               });
-              let DB_data:DB_Data;
-              /* const res = await this.connect.run('one', 'Insert_Db_Data', {
-                db_nm: this.DB_list
-                db_data:
-              }); */
-              break;
           }
         });
         break;
