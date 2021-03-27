@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { PopoverController } from '@ionic/angular';
 import { DbMoreComponent } from 'src/app/component-page/db-more/db-more.component';
 import { DB_Item, DB_Data } from 'src/app/interface';
-import { ConnectService } from '../service/connect.service';
+import { ConnectService } from '../../service/connect.service';
 
 @Component({
   selector: 'app-db',

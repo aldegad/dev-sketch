@@ -2,76 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { PopoverController, ViewDidLeave, ViewWillEnter } from '@ionic/angular';
 import { SketchElementMoreComponent } from 'src/app/component-page/sketch-element-more/sketch-element-more.component';
 import { SketchScreenMoreComponent } from 'src/app/component-page/sketch-screen-more/sketch-screen-more.component';
-import { DB_Data, DB_Item } from 'src/app/interface';
-import { ConnectService } from '../service/connect.service';
-import { interfaceClass } from '../service/file.service';
+import { DB_Data, DB_Item, Element_Item, Element_Item_Type, Event_Item, Screen_Item, Set_Data_Event_Row } from 'src/app/interface';
+import { ApiService } from 'src/app/service-page/api.service';
+import { ConnectService } from '../../service/connect.service';
+import { interfaceClass } from '../../service/file.service';
 
-export class Screen_Item extends interfaceClass {
-  constructor(data?) { 
-    super(); this.setOrigin(data);
-    if(data?.element?.list) this.element.list = data.element.list.map(data => new Element_Item(data));
-  }
-  name = {
-    text: 'untitled',
-    edit: false,
-    edit_text: ''
-  }
-  style = {
-    width: 420,
-    height: 720
-  }
-  element = {
-    list: [] as Element_Item[],
-    active: [] as Element_Item[]
-  }
-}
-export type Element_Item_Type = "text-input" | "rect" | null;
-export class Element_Item extends interfaceClass {
-  constructor(data?) { 
-    super(); this.setOrigin(data);
-    if(data?.events?.click) this.events.click = data.events.click.map(data => new Event_Item(data));
-  }
-  type: "text-input" | null = null;
-  id:string = null;
-  value:string = null;
-  style = {
-    left: '' as string,
-    top: '' as string,
-    right: '' as string,
-    bottom: '' as string,
-    width: '' as string,
-    height: '' as string,
-    paddingLeft: '' as string,
-    paddingRight: '' as string,
-    paddingTop: '' as string,
-    paddingBottom: '' as string
-  }
-  events = {
-    click: [] as Event_Item[]
-  }
-}
-export class Event_Item extends interfaceClass {
-  constructor(data?) { 
-    super(); 
-    switch(data.type) {
-      case 'set-data':
-        this.event = new Set_Data_Event();
-        break;
-    }
-    this.setOrigin(data);
-  }
-  type: "set-data" | "get-data" = null;
-  event: Set_Data_Event = null;
-}
-export class Set_Data_Event extends interfaceClass {
-  constructor(data?) { super(); this.setOrigin(data); }
-  data = [new Set_Data_Event_Row()]
-}
-export class Set_Data_Event_Row extends interfaceClass {
-  constructor(data?) { super(); this.setOrigin(data); }
-  db:string = '';
-  id:string = '';
-}
 @Component({
   selector: 'app-main',
   templateUrl: './main.page.html',
@@ -93,7 +28,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
 
   constructor(
     private popover: PopoverController,
-    private connect: ConnectService
+    public api: ApiService
   ) { }
 
   ngOnInit() {
@@ -101,7 +36,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
   }
   async ionViewWillEnter() {
     this.page_enable = true;
-    this.screen.list = await this.get_sketch_list();
+    this.screen.list = await this.api.get_sketch_list();
     this.screen.active = this.screen.list[0];
   }
   ionViewDidLeave() {
@@ -149,14 +84,14 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
     ev.preventDefault();
     this.drag_el.type = null;
     this.drag_el.enter = false;
-    this.insert_sketch_data(screen.name.text, screen);
+    this.api.insert_sketch_data(screen);
     screen.element.active[0].setOrigin(screen.element.active[0]);
   }
 
   async screen_add() {
     this.screen.list.push(new Screen_Item());
     const last_screen = this.screen.list[this.screen.list.length-1];
-    this.insert_sketch_data(last_screen.name.text, last_screen);
+    this.api.insert_sketch_data(last_screen);
   }
   screen_remove(screen:Screen_Item) {
     const index = this.screen.list.indexOf(screen);
@@ -176,6 +111,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
         screen.name.edit = true;
         break;
       case 'remove':
+        this.api.delete_sketch_data(screen);
         this.screen.list.splice(i, 1);
         break;
     }
@@ -184,17 +120,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
     screen.name.edit = false;
   }
   async screen_edit_save(screen:Screen_Item) {
-    const res = await this.connect.run('one', 'Change_Sketch_Name', {
-      sketch_nm: screen.name.text,
-      new_sketch_nm: screen.name.edit_text
-    });
-    switch(res.code) {
-      case 0:
-        break;
-      default:
-        this.connect.error('스케치 이름 변경 안됨', res);
-        break;
-    }
+    this.api.change_sketch_name(screen);
     screen.name.text = screen.name.edit_text;
     screen.name.edit = false;
   }
@@ -241,7 +167,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
         element.events.click.forEach(async(event) => {
           switch(event.type) {
             case 'set-data':
-              const db_list = await this.get_DB_Data();
+              const db_list = await this.api.get_db_Data();
               const insert_db_list = [] as {
                 db_name: string,
                 datas: [{ id:string, value:any }]
@@ -285,17 +211,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
                       db_item.data.table[last_ri+1][id_index] = {value: insert_data.value};
                     }
                   });
-                  const res = await this.connect.run('one', 'Insert_Db_Data', {
-                    db_nm: db_item.name.text,
-                    db_data: db_item.data
-                  });
-                  switch(res.code) {
-                    case 0:
-                      break;
-                    default:
-                      this.connect.error('아 왜 안됨', res);
-                      break;
-                  }
+                  this.api.insert_db_data(db_item);
                 }
                 //테이블이 없으면 생성하자.
               });
@@ -307,25 +223,7 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
   event_set_data_id(screen:Screen_Item, event_data:Set_Data_Event_Row[], data:Set_Data_Event_Row, index:number, last:boolean) {
     if(last && data.db && data.id) event_data.push(new Set_Data_Event_Row());
     if(!last && !data.db && !data.id) event_data.splice(index, 1);
-    this.insert_sketch_data(screen.name.text, screen);
-  }
-  async get_DB_Data() {
-    const res = await this.connect.run('one', 'Get_Db_List');
-    switch(res.code) {
-      case 0:
-        return res.data.json_data.map(data => {
-          return {
-            name: {
-              text: data.db_nm,
-              edit: false,
-              edit_text: ''
-            },
-            data: JSON.parse(data.db_data)
-          }
-        }) as DB_Item[];
-      default:
-        return [];
-    }
+    this.api.insert_sketch_data(screen);
   }
 
   //mouse events. 나중에 element active 이벤트와 합치는 것이 관리가 더 편할 수도 있음. 일단 다른게 더 중요하므로 추후 고려.
@@ -403,38 +301,9 @@ export class MainPage implements OnInit, ViewWillEnter, ViewDidLeave {
   mouseend(ev:MouseEvent, screen:Screen_Item) {
     if(this.mouse_object.item) {
       this.mouse_object.item.setOrigin(this.mouse_object.item);
-      this.insert_sketch_data(screen.name.text, screen);
+      this.api.insert_sketch_data(screen);
       this.mouse_object.item = null;
       this.mouse_object.item_instance = null;
-    }
-  }
-
-  async get_sketch_list() {
-    const res = await this.connect.run('one', 'Get_Sketch_List');
-    switch(res.code) {
-      case 0:
-        const screen_list:Screen_Item[] = res.data.json_data.map(data => {
-          const screen_item = new Screen_Item(JSON.parse(data.sketch_data));
-          screen_item.element.active = [];
-          return screen_item;
-        });
-        return screen_list;
-      default:
-        this.connect.error('아쒸 왜 안되냐고', res);
-        return [];
-    }
-  }
-  async insert_sketch_data(sketch_nm:string, sketch_data:Screen_Item) {
-    const res = await this.connect.run('one', 'Insert_Sketch_Data', {
-      sketch_nm,
-      sketch_data
-    });
-    switch(res.code) {
-      case 0:
-        break;
-      default:
-        this.connect.error('아쒸 왜 안되냐고', res);
-        break;
     }
   }
 }

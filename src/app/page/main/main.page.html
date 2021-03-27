@@ -55,7 +55,7 @@
                 [style.top]="element.style.top" [style.left]="element.style.left" [style.bottom]="element.style.bottom" [style.right]="element.style.right"
                 [style.height]="element.style.height" [style.width]="element.style.width">
                   <input
-                  [(ngModel)]="element.value" (keyup)="insert_sketch_data(screen.active.name.text, screen.active)"
+                  [(ngModel)]="element.value" (keyup)="api.insert_sketch_data(screen.active)"
                   [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom">
                   <ng-container *ngIf="screen.active.element.active.includes(element) && !drag_el.enter">
                     <div class="edit-line edit-top-line" (mousedown)="mousestart($event, element, 'move')"></div>
@@ -79,7 +79,7 @@
                 [style.top]="element.style.top" [style.left]="element.style.left" [style.bottom]="element.style.bottom" [style.right]="element.style.right"
                 [style.height]="element.style.height" [style.width]="element.style.width">
                   <input
-                  [(ngModel)]="element.value" (keyup)="insert_sketch_data(screen.active.name.text, screen.active)"
+                  [(ngModel)]="element.value" (keyup)="api.insert_sketch_data(screen.active)"
                   [style.paddingLeft]="element.style.paddingLeft" [style.paddingRight]="element.style.paddingRight" [style.paddingTop]="element.style.paddingTop" [style.paddingBottom]="element.style.paddingBottom"
                   (click)="event_provoke('click', screen.active, element)">
                   <div class="edit-line edit-top-line" (mousedown)="mousestart($event, element, 'move')"></div>
